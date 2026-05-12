@@ -185,7 +185,8 @@ async def audit_text(body: AuditRequest):
 
 @app.post("/api/audit/pdf")
 async def audit_pdf(file: UploadFile = File(...)):
-    if file.content_type != "application/pdf":
+    allowed = {"application/pdf", "application/octet-stream", "binary/octet-stream"}
+    if file.content_type not in allowed and not (file.filename or "").endswith(".pdf"):
         raise HTTPException(400, "Only PDF files are accepted")
     contents = await file.read()
     text = extract_pdf_text(contents)

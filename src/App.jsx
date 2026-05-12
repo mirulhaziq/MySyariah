@@ -56,15 +56,26 @@ export default function App() {
     setStages(INITIAL_STAGES.map((s) => ({ ...s, status: 'waiting' })))
 
     try {
-      let url, body, init
+      // ── connectivity check ──────────────────────────────────────────
+      addTrail('Checking backend connection...')
+      try {
+        await fetch(API.health)
+        addTrail('Backend reachable. Starting audit pipeline...')
+      } catch {
+        throw new Error(
+          `Cannot reach backend at ${API.health}. ` +
+          `Make sure uvicorn is running: cd backend && uvicorn main:app --reload --host 0.0.0.0`
+        )
+      }
+
+      let url, init
 
       if (file) {
-        addTrail('Reading PDF binary...')
+        addTrail('Uploading PDF to backend...')
         const formData = new FormData()
         formData.append('file', file)
         url = API.auditPdf
         init = { method: 'POST', body: formData }
-        addTrail('Sending PDF to backend for extraction and audit...')
       } else {
         addTrail('No PDF provided — loading demo contract: Nexus Trading Murabaha Agreement.')
         url = API.auditText
@@ -79,7 +90,7 @@ export default function App() {
       try {
         response = await fetch(url, init)
       } catch (fetchErr) {
-        throw new Error(`Cannot reach backend at ${url}. Is the server running? (${fetchErr.message})`)
+        throw new Error(`Fetch failed for ${url}: ${fetchErr.message}`)
       }
 
       if (!response.ok) {
